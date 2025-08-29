@@ -1,10 +1,16 @@
+# services/report_service.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct, and_
 from datetime import datetime
 import pandas as pd
+
+# Importa correctamente el modelo
 from src.database.models_manual import VistaOferta
 
 class ReportService:
+    
+    def __init__(self):
+        pass
     
     @staticmethod
     def get_adolescentes_aceptados_por_mes_vista(db: Session, fecha_inicio: str = '2025-03-17'):
@@ -12,8 +18,6 @@ class ReportService:
         Obtiene adolescentes aceptados por mes usando la vista vista_oferta
         """
         try:
-            # Asumiendo que la vista tiene un campo de fecha (si no, necesitaríamos ajustar)
-            # Si no hay fecha en la vista, podemos usar el created_at de formulario_oferta
             query = db.query(
                 func.year(VistaOferta.updated_at).label('ano'),
                 func.month(VistaOferta.updated_at).label('mes'),
@@ -150,9 +154,9 @@ class ReportService:
                     'actividad': registro.actividad,
                     'dia': registro.dia,
                     'horario': registro.horario,
-                    'asignada': registro.asignada_texto,
-                    'estado': registro.estado_texto,
-                    'confirmado': registro.confirmado_texto,
+                    'asignada': 'Asignada' if registro.asignada else 'No asignada',
+                    'estado': ReportService.get_estado_texto(registro.estado),
+                    'confirmado': 'Confirmado' if registro.confirmado else 'No confirmado',
                     'updated_at': registro.updated_at
                 })
             
@@ -172,3 +176,16 @@ class ReportService:
         except Exception as e:
             print(f"❌ Error exportando detalle: {e}")
             return False
+
+    @staticmethod
+    def get_estado_texto(estado: int) -> str:
+        """Convierte el código de estado a texto"""
+        estados = {
+            0: 'Sin datos',
+            1: 'Pendiente', 
+            2: 'Aceptado',
+            3: 'Sin datos',
+            4: 'Cambio de actividad',
+            5: 'Baja de actividad'
+        }
+        return estados.get(estado, 'Desconocido')
