@@ -1,22 +1,19 @@
-# config/database.py - AGREGAR AL PRINCIPIO
+# config/database.py
 from dotenv import load_dotenv
-import os
-
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text  # ¡Agrega text aquí!
 from sqlalchemy.orm import sessionmaker, declarative_base
 from .settings import MySQLConfig
 
-# DEBUG: Verificar la configuración
+# PRIMERO: Cargar variables de entorno
+load_dotenv()
+
+# SEGUNDO: Validar la configuración
 MySQLConfig.print_config()
 
-# Validar que no sean None
+# Validar que no sean None - versión simplificada
 if not all([MySQLConfig.HOST, MySQLConfig.USER, MySQLConfig.PASSWORD, MySQLConfig.DB]):
     raise ValueError("❌ Faltan variables de configuración MySQL")
 
-MySQLConfig.validate()
-
-# Cargar variables de entorno desde .env
-load_dotenv()
 # Configuración de la conexión desde settings.py
 DB_CONFIG = {
     'host': MySQLConfig.HOST,
@@ -37,7 +34,7 @@ engine = create_engine(DATABASE_URL,
                       pool_recycle=3600,
                       connect_args={'connect_timeout': 30})
 
-# Crear sesión ← ¡ESTA LÍNEA FALTA!
+# Crear sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base para los modelos
@@ -51,11 +48,12 @@ def get_db():
     finally:
         db.close()
 
-# Función para verificar la conexión
+# Función para verificar la conexión - ¡CORREGIDA!
 def test_connection():
     try:
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            # Usa text() para convertir el SQL en un objeto ejecutable
+            result = conn.execute(text("SELECT 1"))
             print("✓ Conexión exitosa a la base de datos")
             return True
     except Exception as e:
