@@ -10,17 +10,17 @@ class VistaOferta(Base):
     """
     __tablename__ = 'vista_oferta'
     
-    # Columnas de la vista
+    # Columnas principales (deben coincidir exactamente con la vista)
     id_adolescente = Column(Integer, primary_key=True)
-    nombre = Column(String(100))
-    apellido = Column(String(100))
-    dni = Column(String(20))  # Se mapea automáticamente a 'DNI' en la BD
-    sede = Column(String(100))
-    actividad = Column(String(100))
-    dia = Column(String(50))
-    horario = Column(String(50))
+    Nombre = Column(String(100))  # Exactamente como en la vista
+    Apellido = Column(String(100))  # Exactamente como en la vista
+    DNI = Column(String(20))  # Exactamente como en la vista
+    Sede = Column(String(100))  # Exactamente como en la vista
+    Actividad = Column(String(100))  # Exactamente como en la vista
+    Dia = Column(String(50))  # Exactamente como en la vista
+    Horario = Column(String(50))  # Exactamente como en la vista
     
-    # Campos de formulario_oferta
+    # Campos de formulario_oferta (deben coincidir exactamente)
     id = Column(Integer, primary_key=True)  # ID de formulario_oferta
     formulario_id = Column(Integer)
     oferta_actividad_id = Column(Integer)
@@ -29,11 +29,11 @@ class VistaOferta(Base):
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
     
-    # Campo de formularios
+    # Campo de formularios (debe coincidir exactamente)
     confirmado = Column(Boolean)
     
     def __repr__(self):
-        return f"<VistaOferta {self.dni} - {self.nombre} {self.apellido}>"
+        return f"<VistaOferta {self.DNI} - {self.Nombre} {self.Apellido}>"
     
     @property
     def estado_texto(self):
@@ -50,10 +50,3 @@ class VistaOferta(Base):
     @property
     def confirmado_texto(self):
         return 'Confirmado' if self.confirmado else 'No confirmado'
-    
-    @property
-    def mes_anio(self):
-        """Para agrupar por mes fácilmente"""
-        if self.updated_at:
-            return self.updated_at.strftime('%Y-%m')
-        return None
