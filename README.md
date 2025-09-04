@@ -18,11 +18,13 @@ Administrador/
 ├── main_funcional.py
 ├── models/
 │   ├── __init__.py
-│   ├── models.py
+│   ├── orm/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   ├── reports/
+│   │   ├── __init__.py
+│   │   ├── vista_oferta.py
 ├── README.md
-├── reporte_adolescentes_aceptados_20250829_083627.xlsx
-├── reporte_adolescentes_aceptados_20250902_095609.xlsx
-├── reporte_adolescentes_aceptados_20250902_121023.xlsx
 ├── requirements.txt
 ├── services/
 │   ├── __init__.py
@@ -32,12 +34,12 @@ Administrador/
 │   ├── database/
 │   │   ├── __init__.py
 │   │   ├── conexiones.py
-│   │   ├── models_manual.py
 │   ├── demo/
 │   │   ├── __init__.py
-│   │   ├── demo_manual.py
+│   │   ├── demo_vista.py
 │   ├── utils/
 │   │   ├── __init__.py
+│   │   ├── generate_readme.py
 │   │   ├── model_utils.py
 │   │   ├── query_utils.py
 │   │   ├── storage_utils.py
@@ -73,4 +75,4 @@ python src/utils/update_docs.py
 ```
 
 ---
-> 📅 Última actualización: 2025-09-02 13:45:53
+> 📅 Última actualización: 2025-09-03 09:11:37
