@@ -1,11 +1,12 @@
-# services/report_service.py
+# services/report_service.py (ARCHIVO COMPLETO ACTUALIZADO)
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 from datetime import datetime
 import pandas as pd
 
-# Importa correctamente el modelo
+# Importa ambos modelos
 from models.reports.vista_oferta import VistaOferta
+from models.reports.vista_oferta_reconstruida import VistaOfertaReconstruida, convertir_vistas_reconstruidas
 
 class ReportService:
     
@@ -37,12 +38,11 @@ class ReportService:
             print(f"❌ Error en la consulta con vista: {e}")
             raise
     
-    # ... (el resto de métodos permanecen igual)
-    
     @staticmethod
     def get_detalle_completo_vista(db: Session, filters: dict = None):
         """
         Obtiene el detalle completo desde la vista con filtros opcionales
+        (Versión original - devuelve VistaOferta)
         """
         try:
             query = db.query(VistaOferta)
@@ -59,6 +59,35 @@ class ReportService:
                     query = query.filter(VistaOferta.updated_at >= filters['fecha_desde'])
             
             return query.order_by(VistaOferta.id_adolescente, VistaOferta.updated_at).all()
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo detalle desde vista: {e}")
+            return []
+
+    @staticmethod
+    def get_detalle_completo_vista_reconstruido(db: Session, filters: dict = None) -> list[VistaOfertaReconstruida]:
+        """
+        Obtiene el detalle completo desde la vista y lo convierte a VistaOfertaReconstruida
+        (NUEVA VERSIÓN - devuelve objetos reconstruidos)
+        """
+        try:
+            query = db.query(VistaOferta)
+            
+            # Aplicar filtros si se proporcionan
+            if filters:
+                if filters.get('confirmado') is not None:
+                    query = query.filter(VistaOferta.confirmado == filters['confirmado'])
+                if filters.get('asignada') is not None:
+                    query = query.filter(VistaOferta.asignada == filters['asignada'])
+                if filters.get('estado') is not None:
+                    query = query.filter(VistaOferta.estado == filters['estado'])
+                if filters.get('fecha_desde'):
+                    query = query.filter(VistaOferta.updated_at >= filters['fecha_desde'])
+            
+            resultados = query.order_by(VistaOferta.id_adolescente, VistaOferta.updated_at).all()
+            
+            # Convertir a objetos reconstruidos
+            return convertir_vistas_reconstruidas(resultados)
             
         except Exception as e:
             print(f"❌ Error obteniendo detalle desde vista: {e}")
@@ -124,54 +153,32 @@ class ReportService:
             print(f"❌ Error creando DataFrame desde vista: {e}")
             return pd.DataFrame()
     
+    # services/report_service.py (método adicional para archivo único con múltiples hojas)
     @staticmethod
-    def exportar_detalle_completo(db: Session, filename: str = None):
+    def exportar_todo_en_un_archivo(db: Session, filename: str = "reporte_completo_adolescentes.xlsx"):
         """
-        Exporta todo el detalle de la vista a Excel
+        Exporta todos los datos a un solo archivo Excel con múltiples hojas
         """
         try:
-            # Obtener todos los datos de la vista con los filtros deseados
-            datos = db.query(VistaOferta).filter(
-                VistaOferta.confirmado == True,
-                VistaOferta.asignada == True,
-                VistaOferta.estado == 2
-            ).all()
-            
-            if not datos:
-                print("⚠️ No se encontraron datos para exportar")
-                return False
-            
-            # Crear DataFrame
-            data_list = []
-            for registro in datos:
-                data_list.append({
-                    'id_adolescente': registro.id_adolescente,
-                    'nombre': registro.nombre,
-                    'apellido': registro.apellido,
-                    'dni': registro.dni,
-                    'sede': registro.sede,
-                    'actividad': registro.actividad,
-                    'dia': registro.dia,
-                    'horario': registro.horario,
-                    'asignada': registro.asignada_texto,
-                    'estado': registro.estado_texto,
-                    'confirmado': registro.confirmado_texto,
-                    'updated_at': registro.updated_at
+            with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+                # Hoja 1: Resumen mensual
+                df_resumen = ReportService.get_adolescentes_aceptados_dataframe_vista(db)
+                if not df_resumen.empty:
+                    df_resumen.to_excel(writer, sheet_name='Resumen Mensual', index=False)
+                
+                # Hoja 2: Detalle reconstruido
+                datos_reconstruidos = ReportService.get_detalle_completo_vista_reconstruido(db, {
+                    'confirmado': True,
+                    'asignada': True,
+                    'estado': 2
                 })
+                if datos_reconstruidos:
+                    df_detalle = pd.DataFrame([dato.to_dict() for dato in datos_reconstruidos])
+                    df_detalle.to_excel(writer, sheet_name='Detalle Completo', index=False)
             
-            df = pd.DataFrame(data_list)
-            
-            # Crear nombre de archivo con timestamp
-            if not filename:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"detalle_completo_vista_{timestamp}.xlsx"
-            
-            # Guardar en Excel
-            df.to_excel(filename, index=False, sheet_name='Detalle Completo')
-            
-            print(f"✓ Exportado {len(df)} registros a '{filename}'")
+            print(f"✅ Reporte completo exportado: {filename}")
             return True
             
         except Exception as e:
-            print(f"❌ Error exportando detalle: {e}")
+            print(f"❌ Error exportando reporte completo: {e}")
             return False
