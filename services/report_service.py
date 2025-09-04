@@ -1,16 +1,13 @@
 # services/report_service.py
 from sqlalchemy.orm import Session
-from sqlalchemy import func, distinct, and_
+from sqlalchemy import func, distinct
 from datetime import datetime
 import pandas as pd
 
 # Importa correctamente el modelo
-from src.database.models_manual import VistaOferta
+from models.reports.vista_oferta import VistaOferta
 
 class ReportService:
-    
-    def __init__(self):
-        pass
     
     @staticmethod
     def get_adolescentes_aceptados_por_mes_vista(db: Session, fecha_inicio: str = '2025-03-17'):
@@ -39,6 +36,8 @@ class ReportService:
         except Exception as e:
             print(f"❌ Error en la consulta con vista: {e}")
             raise
+    
+    # ... (el resto de métodos permanecen igual)
     
     @staticmethod
     def get_detalle_completo_vista(db: Session, filters: dict = None):
@@ -154,9 +153,9 @@ class ReportService:
                     'actividad': registro.actividad,
                     'dia': registro.dia,
                     'horario': registro.horario,
-                    'asignada': 'Asignada' if registro.asignada else 'No asignada',
-                    'estado': ReportService.get_estado_texto(registro.estado),
-                    'confirmado': 'Confirmado' if registro.confirmado else 'No confirmado',
+                    'asignada': registro.asignada_texto,
+                    'estado': registro.estado_texto,
+                    'confirmado': registro.confirmado_texto,
                     'updated_at': registro.updated_at
                 })
             
@@ -176,16 +175,3 @@ class ReportService:
         except Exception as e:
             print(f"❌ Error exportando detalle: {e}")
             return False
-
-    @staticmethod
-    def get_estado_texto(estado: int) -> str:
-        """Convierte el código de estado a texto"""
-        estados = {
-            0: 'Sin datos',
-            1: 'Pendiente', 
-            2: 'Aceptado',
-            3: 'Sin datos',
-            4: 'Cambio de actividad',
-            5: 'Baja de actividad'
-        }
-        return estados.get(estado, 'Desconocido')
