@@ -1,7 +1,5 @@
-# services/report_service.py (ARCHIVO COMPLETO ACTUALIZADO)
+# services/report_service.py
 from sqlalchemy.orm import Session
-from sqlalchemy import func, distinct
-from datetime import datetime
 import pandas as pd
 
 # Importa ambos modelos
@@ -11,174 +9,94 @@ from models.reports.vista_oferta_reconstruida import VistaOfertaReconstruida, co
 class ReportService:
     
     @staticmethod
-    def get_adolescentes_aceptados_por_mes_vista(db: Session, fecha_inicio: str = '2025-03-17'):
+    def get_vista_oferta_cruda(db: Session) -> list[VistaOferta]:
         """
-        Obtiene adolescentes aceptados por mes usando la vista vista_oferta
-        """
-        try:
-            query = db.query(
-                func.year(VistaOferta.updated_at).label('ano'),
-                func.month(VistaOferta.updated_at).label('mes'),
-                func.count(distinct(VistaOferta.id_adolescente)).label('total_adolescentes')
-            ).filter(
-                VistaOferta.confirmado == True,
-                VistaOferta.asignada == True,
-                VistaOferta.estado == 2,
-                VistaOferta.updated_at >= fecha_inicio
-            ).group_by(
-                func.year(VistaOferta.updated_at),
-                func.month(VistaOferta.updated_at)
-            ).order_by(
-                'ano', 'mes'
-            )
-            
-            return query.all()
-            
-        except Exception as e:
-            print(f"❌ Error en la consulta con vista: {e}")
-            raise
-    
-    @staticmethod
-    def get_detalle_completo_vista(db: Session, filters: dict = None):
-        """
-        Obtiene el detalle completo desde la vista con filtros opcionales
-        (Versión original - devuelve VistaOferta)
+        Obtiene TODOS los datos crudos de VistaOferta sin filtros
         """
         try:
-            query = db.query(VistaOferta)
-            
-            # Aplicar filtros si se proporcionan
-            if filters:
-                if filters.get('confirmado') is not None:
-                    query = query.filter(VistaOferta.confirmado == filters['confirmado'])
-                if filters.get('asignada') is not None:
-                    query = query.filter(VistaOferta.asignada == filters['asignada'])
-                if filters.get('estado') is not None:
-                    query = query.filter(VistaOferta.estado == filters['estado'])
-                if filters.get('fecha_desde'):
-                    query = query.filter(VistaOferta.updated_at >= filters['fecha_desde'])
-            
-            return query.order_by(VistaOferta.id_adolescente, VistaOferta.updated_at).all()
-            
+            return db.query(VistaOferta).order_by(VistaOferta.id_adolescente).all()
         except Exception as e:
-            print(f"❌ Error obteniendo detalle desde vista: {e}")
-            return []
-
-    @staticmethod
-    def get_detalle_completo_vista_reconstruido(db: Session, filters: dict = None) -> list[VistaOfertaReconstruida]:
-        """
-        Obtiene el detalle completo desde la vista y lo convierte a VistaOfertaReconstruida
-        (NUEVA VERSIÓN - devuelve objetos reconstruidos)
-        """
-        try:
-            query = db.query(VistaOferta)
-            
-            # Aplicar filtros si se proporcionan
-            if filters:
-                if filters.get('confirmado') is not None:
-                    query = query.filter(VistaOferta.confirmado == filters['confirmado'])
-                if filters.get('asignada') is not None:
-                    query = query.filter(VistaOferta.asignada == filters['asignada'])
-                if filters.get('estado') is not None:
-                    query = query.filter(VistaOferta.estado == filters['estado'])
-                if filters.get('fecha_desde'):
-                    query = query.filter(VistaOferta.updated_at >= filters['fecha_desde'])
-            
-            resultados = query.order_by(VistaOferta.id_adolescente, VistaOferta.updated_at).all()
-            
-            # Convertir a objetos reconstruidos
-            return convertir_vistas_reconstruidas(resultados)
-            
-        except Exception as e:
-            print(f"❌ Error obteniendo detalle desde vista: {e}")
+            print(f"❌ Error obteniendo datos crudos: {e}")
             return []
     
     @staticmethod
-    def get_estadisticas_vista(db: Session):
+    def get_vista_oferta_reconstruida(db: Session) -> list[VistaOfertaReconstruida]:
         """
-        Obtiene estadísticas generales desde la vista
+        Obtiene TODOS los datos reconstruidos sin filtros
         """
         try:
-            # Total de registros
-            total = db.query(func.count(VistaOferta.id)).scalar()
-            
-            # Por estado
-            por_estado = db.query(
-                VistaOferta.estado,
-                func.count(VistaOferta.id).label('cantidad')
-            ).group_by(VistaOferta.estado).all()
-            
-            # Por asignación
-            por_asignacion = db.query(
-                VistaOferta.asignada,
-                func.count(VistaOferta.id).label('cantidad')
-            ).group_by(VistaOferta.asignada).all()
-            
-            # Por confirmación
-            por_confirmacion = db.query(
-                VistaOferta.confirmado,
-                func.count(VistaOferta.id).label('cantidad')
-            ).group_by(VistaOferta.confirmado).all()
-            
-            return {
-                'total_registros': total,
-                'por_estado': por_estado,
-                'por_asignacion': por_asignacion,
-                'por_confirmacion': por_confirmacion
-            }
-            
+            datos_crudos = db.query(VistaOferta).order_by(VistaOferta.id_adolescente).all()
+            return convertir_vistas_reconstruidas(datos_crudos)
         except Exception as e:
-            print(f"❌ Error obteniendo estadísticas: {e}")
-            return {}
+            print(f"❌ Error obteniendo datos reconstruidos: {e}")
+            return []
     
     @staticmethod
-    def get_adolescentes_aceptados_dataframe_vista(db: Session, fecha_inicio: str = '2025-03-17'):
+    def exportar_todo_a_excel(db: Session, filename: str = "reporte_completo.xlsx"):
         """
-        Devuelve los datos de la vista como DataFrame de pandas
-        """
-        try:
-            data = ReportService.get_adolescentes_aceptados_por_mes_vista(db, fecha_inicio)
-            
-            if not data:
-                return pd.DataFrame()
-            
-            df = pd.DataFrame(data, columns=['año', 'mes', 'total_adolescentes'])
-            df['mes_nombre'] = df['mes'].apply(lambda x: datetime(2023, x, 1).strftime('%B'))
-            df['periodo'] = df['año'].astype(str) + '-' + df['mes'].astype(str).str.zfill(2)
-            df = df.sort_values(['año', 'mes'])
-            
-            return df
-            
-        except Exception as e:
-            print(f"❌ Error creando DataFrame desde vista: {e}")
-            return pd.DataFrame()
-    
-    # services/report_service.py (método adicional para archivo único con múltiples hojas)
-    @staticmethod
-    def exportar_todo_en_un_archivo(db: Session, filename: str = "reporte_completo_adolescentes.xlsx"):
-        """
-        Exporta todos los datos a un solo archivo Excel con múltiples hojas
+        Exporta TODOS los datos a Excel con dos hojas sin filtros
+        Campos booleanos como 0 y 1
         """
         try:
+            print("📊 Obteniendo datos de VistaOferta...")
+            datos_crudos = ReportService.get_vista_oferta_cruda(db)
+            print(f"✅ Obtenidos {len(datos_crudos)} registros crudos")
+            
+            print("📊 Obteniendo datos reconstruidos...")
+            datos_reconstruidos = ReportService.get_vista_oferta_reconstruida(db)
+            print(f"✅ Obtenidos {len(datos_reconstruidos)} registros reconstruidos")
+            
+            print("💾 Exportando a Excel...")
             with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-                # Hoja 1: Resumen mensual
-                df_resumen = ReportService.get_adolescentes_aceptados_dataframe_vista(db)
-                if not df_resumen.empty:
-                    df_resumen.to_excel(writer, sheet_name='Resumen Mensual', index=False)
+                # Hoja 1: VistaOferta cruda (booleanos como 0 y 1)
+                if datos_crudos:
+                    df_crudo = pd.DataFrame([{
+                        'id_adolescente': r.id_adolescente,
+                        'Nombre': r.Nombre,
+                        'Apellido': r.Apellido,
+                        'DNI': r.DNI,
+                        'Sede': r.Sede,
+                        'Actividad': r.Actividad,
+                        'Dia': r.Dia,
+                        'Horario': r.Horario,
+                        'formulario_id': r.formulario_id,
+                        'oferta_actividad_id': r.oferta_actividad_id,
+                        # ⭐⭐ BOOLEANOS COMO 0 Y 1 ⭐⭐
+                        'asignada': 1 if r.asignada else 0,
+                        'estado': r.estado,  # Este ya es entero
+                        'confirmado': 1 if r.confirmado else 0,
+                        'created_at': r.created_at,
+                        'updated_at': r.updated_at
+                    } for r in datos_crudos])
+                    df_crudo.to_excel(writer, sheet_name='Vista_oferta', index=False)
+                    print(f"✅ Hoja 'Vista_oferta' exportada: {len(df_crudo)} registros")
                 
-                # Hoja 2: Detalle reconstruido
-                datos_reconstruidos = ReportService.get_detalle_completo_vista_reconstruido(db, {
-                    'confirmado': True,
-                    'asignada': True,
-                    'estado': 2
-                })
+                # Hoja 2: VistaOferta reconstruida (booleanos como 0 y 1)
                 if datos_reconstruidos:
-                    df_detalle = pd.DataFrame([dato.to_dict() for dato in datos_reconstruidos])
-                    df_detalle.to_excel(writer, sheet_name='Detalle Completo', index=False)
+                    df_reconstruido = pd.DataFrame([{
+                        'id_adolescente': r.id_adolescente,
+                        'Nombre': r.Nombre,
+                        'Apellido': r.Apellido,
+                        'DNI': r.DNI,
+                        'Sede': r.Sede,
+                        'Actividad': r.Actividad,
+                        'Dia': r.Dia,
+                        'Horario': r.Horario,
+                        'formulario_id': r.formulario_id,
+                        'oferta_actividad_id': r.oferta_actividad_id,
+                        # ⭐⭐ BOOLEANOS COMO 0 Y 1 ⭐⭐
+                        'asignada': 1 if r.asignada else 0,
+                        'estado': r.estado,  # Este ya es entero
+                        'confirmado': 1 if r.confirmado else 0,
+                        'created_at': r.created_at,
+                        'updated_at': r.updated_at
+                    } for r in datos_reconstruidos])
+                    df_reconstruido.to_excel(writer, sheet_name='Vista_oferta_reconstruida', index=False)
+                    print(f"✅ Hoja 'Vista_oferta_reconstruida' exportada: {len(df_reconstruido)} registros")
             
             print(f"✅ Reporte completo exportado: {filename}")
             return True
             
         except Exception as e:
-            print(f"❌ Error exportando reporte completo: {e}")
+            print(f"❌ Error exportando reporte: {e}")
             return False
