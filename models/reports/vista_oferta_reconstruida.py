@@ -1,7 +1,13 @@
 # models/reports/vista_oferta_reconstruida.py
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
+from typing import List, TYPE_CHECKING
 from datetime import datetime
+
+# Importar el modificador específico
+from .modificador_registros_agrega_02_antes_que_04 import agregar_registros_02_antes_que_04
+from .modificador_registros_agrega_02_antes_que_05 import agregar_registros_02_antes_que_05
 
 Base = declarative_base()
 
@@ -33,12 +39,22 @@ class VistaOfertaReconstruida(Base):
     # Campo de formularios (mismo nombre)
     confirmado = Column(Boolean)
     
-    def __init__(self, vista_original: 'VistaOferta' = None):
+    # ⭐⭐ NUEVO CAMPO: Para identificar registros agregados por modificadores ⭐⭐
+    registro_agregado = Column(String(100), nullable=True)
+    
+# models/reports/vista_oferta_reconstruida.py
+    def __init__(self, vista_original: 'VistaOferta' = None, **kwargs):
         """
         Constructor que permite crear una instancia a partir de VistaOferta original
+        o mediante parámetros con nombre
         """
         if vista_original:
             self._mapear_desde_vista_original(vista_original)
+        elif kwargs:
+            # Establecer atributos directamente desde kwargs
+            for key, value in kwargs.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
     
     def _mapear_desde_vista_original(self, vista_original: 'VistaOferta'):
         """Mapea los datos desde la vista original"""
@@ -94,8 +110,59 @@ class VistaOfertaReconstruida(Base):
 
 
 # Función utilitaria para convertir múltiples objetos
-def convertir_vistas_reconstruidas(vistas_originales: list) -> list[VistaOfertaReconstruida]:
+# models/reports/vista_oferta_reconstruida.py
+from sqlalchemy.orm import Session
+from typing import List
+from datetime import datetime
+
+# ... (código existente de la clase VistaOfertaReconstruida)
+
+def convertir_vistas_reconstruidas(datos_crudos: list) -> List[VistaOfertaReconstruida]:
     """
-    Convierte una lista de VistaOferta a VistaOfertaReconstruida
+    Convierte los datos crudos de VistaOferta a VistaOfertaReconstruida
+    con ordenamiento especial para casos con misma fecha updated_at
     """
-    return [VistaOfertaReconstruida(vista) for vista in vistas_originales]
+    # Agrupar por formulario_id
+    formularios = {}
+    for dato in datos_crudos:
+        if dato.formulario_id not in formularios:
+            formularios[dato.formulario_id] = []
+        formularios[dato.formulario_id].append(dato)
+    
+    resultados = []
+    
+    # Procesar cada formulario
+    for formulario_id, registros in formularios.items():
+        # Ordenar con múltiples criterios
+        registros_ordenados = sorted(
+            registros, 
+            key=lambda x: (
+                x.updated_at, 
+                # Criterio 1: Priorizar (0,0) sobre otros
+                0 if (x.asignada == False and x.estado == 0) else 1,
+                # Criterio 2: Para registros con mismas fechas, priorizar (0,1) sobre (0,5)
+                # Asignamos valores: (0,1) -> 0, (0,5) -> 1, otros -> 2
+                0 if (x.asignada == False and x.estado == 1) else (
+                    1 if (x.asignada == False and x.estado == 5) else 2
+                ),
+                # Mantener orden original para otros casos
+                x.created_at,
+                x.estado
+            )
+        )
+        
+        # Convertir a VistaOfertaReconstruida usando el mapeo desde vista_original
+        for registro in registros_ordenados:
+            obj = VistaOfertaReconstruida()
+            obj._mapear_desde_vista_original(registro)
+            resultados.append(obj)
+    
+    # ⭐⭐ APLICAR MODIFICADORES ESPECÍFICOS ⭐⭐
+    # Importar aquí para evitar circular import
+    from .modificador_registros_agrega_02_antes_que_04 import agregar_registros_02_antes_que_04
+    from .modificador_registros_agrega_02_antes_que_05 import agregar_registros_02_antes_que_05
+    
+    resultados = agregar_registros_02_antes_que_04(resultados)
+    resultados = agregar_registros_02_antes_que_05(resultados)
+    
+    return resultados

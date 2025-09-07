@@ -42,6 +42,26 @@ def main():
                 print("   - Hoja 'Vista_oferta_reconstruida': Todos los datos reconstruidos")
             else:
                 print("⚠️ No se pudo exportar el reporte completo")
+            
+            # Análisis de secuencias (DENTRO del mismo try, antes de cerrar la conexión)
+            print("\n🔍 Analizando secuencias de estados y asignaciones...")
+            
+            # Obtener datos reconstruidos para el análisis
+            datos_para_analisis = ReportService.get_vista_oferta_reconstruida(db)
+            
+            analisis_exportado = ReportService.analizar_secuencias(
+                datos_para_analisis, 
+                "analisis_secuencias.xlsx"
+            )
+            
+            if analisis_exportado:
+                print("✅ Análisis de secuencias completado exitosamente")
+                print("📊 Contenido del archivo:")
+                print("   - Hoja 'detalle_secuencia': Detalle de cada paso por formulario")
+                print("   - Hoja 'resumen_por_formulario': Secuencia completa por formulario")
+                print("   - Hoja 'frecuencia_secuencias': Frecuencia de cada secuencia")
+            else:
+                print("⚠️ No se pudo completar el análisis de secuencias")
         
         except Exception as e:
             print(f"❌ Error durante el procesamiento: {str(e)}")
