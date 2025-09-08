@@ -42,6 +42,23 @@ class VistaOfertaReconstruida(Base):
     # ⭐⭐ NUEVO CAMPO: Para identificar registros agregados por modificadores ⭐⭐
     registro_agregado = Column(String(100), nullable=True)
     
+    # ⭐⭐ NUEVO CAMPO: Para almacenar los meses en el programa ⭐⭐
+    meses_en_el_programa = Column(String(500), nullable=True)
+    
+    # ⭐⭐ NUEVOS CAMPOS: Para almacenar la presencia en cada mes ⭐⭐
+    enero = Column(Integer, default=0, nullable=True)
+    febrero = Column(Integer, default=0, nullable=True)
+    marzo = Column(Integer, default=0, nullable=True)
+    abril = Column(Integer, default=0, nullable=True)
+    mayo = Column(Integer, default=0, nullable=True)
+    junio = Column(Integer, default=0, nullable=True)
+    julio = Column(Integer, default=0, nullable=True)
+    agosto = Column(Integer, default=0, nullable=True)
+    septiembre = Column(Integer, default=0, nullable=True)
+    octubre = Column(Integer, default=0, nullable=True)
+    noviembre = Column(Integer, default=0, nullable=True)
+    diciembre = Column(Integer, default=0, nullable=True)
+    
 # models/reports/vista_oferta_reconstruida.py
     def __init__(self, vista_original: 'VistaOferta' = None, **kwargs):
         """
@@ -164,5 +181,9 @@ def convertir_vistas_reconstruidas(datos_crudos: list) -> List[VistaOfertaRecons
     
     resultados = agregar_registros_02_antes_que_04(resultados)
     resultados = agregar_registros_02_antes_que_05(resultados)
+    
+    # ⭐⭐ CALCULAR MESES EN EL PROGRAMA ⭐⭐
+    from .modificador_registros_agrega_campo_meses_en_el_programa import calcular_meses_en_programa
+    resultados = calcular_meses_en_programa(resultados)
     
     return resultados

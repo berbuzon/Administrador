@@ -40,6 +40,7 @@ def main():
                 print("📊 Contenido del archivo:")
                 print("   - Hoja 'Vista_oferta': Todos los datos crudos")
                 print("   - Hoja 'Vista_oferta_reconstruida': Todos los datos reconstruidos")
+                print("   - Hojas 'Confirmados_[mes]': Adolescentes confirmados por mes")
             else:
                 print("⚠️ No se pudo exportar el reporte completo")
             
@@ -62,6 +63,27 @@ def main():
                 print("   - Hoja 'frecuencia_secuencias': Frecuencia de cada secuencia")
             else:
                 print("⚠️ No se pudo completar el análisis de secuencias")
+            
+            # ⭐⭐ NUEVO: Generar reporte de confirmados por mes ⭐⭐
+            print("\n📈 Generando reporte de confirmados por mes...")
+            reporte_confirmados = ReportService.generar_reporte_confirmados_por_mes(db, "cantidad_confirmados_por_mes.xlsx")
+            
+            if reporte_confirmados:
+                print("✅ Reporte de confirmados por mes exportado exitosamente")
+            else:
+                print("⚠️ No se pudo exportar el reporte de confirmados por mes")
+            
+            # ⭐⭐ NUEVO: Generar reporte de presupuesto de becas ⭐⭐
+            print("\n💰 Generando reporte de presupuesto de becas...")
+            reporte_presupuesto = ReportService.generar_reporte_presupuesto_becas(db, "presupuesto_becas.xlsx")
+            
+            if reporte_presupuesto:
+                print("✅ Reporte de presupuesto de becas exportado exitosamente")
+                print("📊 Contenido del archivo:")
+                print("   - Hoja 'Presupuesto': Datos detallados de presupuesto")
+                print("   - Gráfico: Comparación gasto real vs planeado y excedente acumulado")
+            else:
+                print("⚠️ No se pudo exportar el reporte de presupuesto de becas")
         
         except Exception as e:
             print(f"❌ Error durante el procesamiento: {str(e)}")
