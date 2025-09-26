@@ -158,7 +158,7 @@ class ReportService:
 
                     ids_unicos = {registro.id_adolescente for registro in registros_mes_unicos}
                     if len(ids_unicos) != len(registros_mes_unicos):
-                        raise AssertionError(
+                        raise ValueError(
                             f"Se encontraron IDs de adolescentes duplicados en la hoja del mes {mes}"
                         )
 
