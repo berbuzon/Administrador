@@ -14,6 +14,7 @@ def main():
         print("📦 Importando módulos...")
         from config.database import SessionLocal, test_connection
         from services.report_service import ReportService
+        from services.report_service_meses import generar_reporte_meses
         import pandas as pd
         
         print("✅ Módulos importados correctamente")
@@ -76,7 +77,7 @@ def main():
             # ⭐⭐ NUEVO: Generar reporte de presupuesto de becas ⭐⭐
             print("\n💰 Generando reporte de presupuesto de becas...")
             reporte_presupuesto = ReportService.generar_reporte_presupuesto_becas(db, "presupuesto_becas.xlsx")
-            
+
             if reporte_presupuesto:
                 print("✅ Reporte de presupuesto de becas exportado exitosamente")
                 print("📊 Contenido del archivo:")
@@ -84,7 +85,17 @@ def main():
                 print("   - Gráfico: Comparación gasto real vs planeado y excedente acumulado")
             else:
                 print("⚠️ No se pudo exportar el reporte de presupuesto de becas")
-        
+
+            # ⭐⭐ NUEVO: Generar reporte de meses asistidos sin marzo ⭐⭐
+            print("\n🗓️ Generando reporte de meses asistidos sin marzo...")
+            reporte_meses_path = generar_reporte_meses(db, "reporte_meses.xlsx")
+
+            if reporte_meses_path:
+                print("✅ Reporte de meses asistidos sin marzo exportado exitosamente")
+                print(f"📁 Archivo generado en: {reporte_meses_path}")
+            else:
+                print("⚠️ No se pudo exportar el reporte de meses asistidos sin marzo")
+
         except Exception as e:
             print(f"❌ Error durante el procesamiento: {str(e)}")
             traceback.print_exc()
