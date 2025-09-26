@@ -137,11 +137,32 @@ class ReportService:
                 for mes in meses:
                     # Filtrar registros con estado=2 y presencia en el mes específico
                     registros_mes = [
-                        r for r in datos_reconstruidos 
+                        r for r in datos_reconstruidos
                         if r.estado == 2 and getattr(r, mes, 0) == 1
                     ]
-                    
-                    if registros_mes:
+
+                    registros_mes_por_adolescente: dict[int, VistaOfertaReconstruida] = {}
+                    for registro in registros_mes:
+                        registro_existente = registros_mes_por_adolescente.get(registro.id_adolescente)
+                        updated_at_registro = (
+                            registro.updated_at if getattr(registro, "updated_at", None) else datetime.min
+                        )
+                        updated_at_existente = (
+                            registro_existente.updated_at if getattr(registro_existente, "updated_at", None) else datetime.min
+                        ) if registro_existente else datetime.min
+
+                        if registro_existente is None or updated_at_registro > updated_at_existente:
+                            registros_mes_por_adolescente[registro.id_adolescente] = registro
+
+                    registros_mes_unicos = list(registros_mes_por_adolescente.values())
+
+                    ids_unicos = {registro.id_adolescente for registro in registros_mes_unicos}
+                    if len(ids_unicos) != len(registros_mes_unicos):
+                        raise AssertionError(
+                            f"Se encontraron IDs de adolescentes duplicados en la hoja del mes {mes}"
+                        )
+
+                    if registros_mes_unicos:
                         df_mes = pd.DataFrame([{
                             'id_adolescente': r.id_adolescente,
                             'Nombre': r.Nombre,
@@ -159,7 +180,7 @@ class ReportService:
                             'created_at': r.created_at,
                             'updated_at': r.updated_at,
                             'registro_agregado': r.registro_agregado if hasattr(r, 'registro_agregado') else ''
-                        } for r in registros_mes])
+                        } for r in registros_mes_unicos])
                         
                         # Limitar el nombre de la hoja a 31 caracteres (límite de Excel)
                         sheet_name = f"Confirmados_{mes}"[:31]
