@@ -12,11 +12,18 @@ MESES_SIN_MARZO: List[str] = [
 ]
 
 
-def _obtener_registro_mas_antiguo(registro_actual, registro_existente):
-    """Devuelve el registro con el updated_at más antiguo."""
-    fecha_actual = getattr(registro_actual, 'updated_at', None) or datetime.max
-    fecha_existente = getattr(registro_existente, 'updated_at', None) or datetime.max
-    return registro_actual if fecha_actual <= fecha_existente else registro_existente
+def _obtener_registro_mas_reciente(registro_actual, registro_existente):
+    """Devuelve el registro con el ``updated_at`` más reciente.
+
+    Los datos de "oferta reconstruida" pueden traer múltiples filas por
+    adolescente. En esos casos queremos conservar el registro más actual para
+    reflejar los meses asistidos más cercanos a la fecha del informe. Si alguna
+    de las fechas estuviera ausente, se considera como la menos reciente.
+    """
+
+    fecha_actual = getattr(registro_actual, 'updated_at', None) or datetime.min
+    fecha_existente = getattr(registro_existente, 'updated_at', None) or datetime.min
+    return registro_actual if fecha_actual >= fecha_existente else registro_existente
 
 
 def _get_report_service():
@@ -37,7 +44,7 @@ def generar_reporte_meses(db: Session, filename: str = "reporte_meses.xlsx") -> 
         if existente is None:
             registros_por_adolescente[registro.id_adolescente] = registro
         else:
-            registros_por_adolescente[registro.id_adolescente] = _obtener_registro_mas_antiguo(
+            registros_por_adolescente[registro.id_adolescente] = _obtener_registro_mas_reciente(
                 registro,
                 existente
             )
