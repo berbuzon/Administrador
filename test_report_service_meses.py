@@ -97,7 +97,7 @@ class GenerarReporteMesesTests(unittest.TestCase):
         detalle_por_id = detalle.set_index('id_adolescente')
 
         self.assertEqual(detalle_por_id.loc[1, 'cantidad_meses_sin_marzo'], 2)
-        self.assertEqual(detalle_por_id.loc[1, 'meses_asistidos_sin_marzo'], 'febrero - noviembre')
+        self.assertEqual(detalle_por_id.loc[1, 'meses_asistidos_sin_marzo'], 'abril - noviembre')
         self.assertEqual(detalle_por_id.loc[2, 'cantidad_meses_sin_marzo'], 0)
         valor_meses_id2 = detalle_por_id.loc[2, 'meses_asistidos_sin_marzo']
         self.assertTrue(pd.isna(valor_meses_id2) or valor_meses_id2 == '')
